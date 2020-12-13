@@ -1,33 +1,40 @@
 #include "../include/EarleyParser.h"
 
-using Situation = EarleyParser::EarleySituation;
 
 
-Situation::EarleySituation(std::string rule_lhs, std::string rule_rhs,
+EarleySituation::EarleySituation(std::string rule_lhs, std::string rule_rhs,
                            uint32_t point_pos, uint32_t start_pos) :
-                           rule_(std::move(rule_lhs), std::move(rule_rhs)),
+                           GrammarRule(std::move(rule_lhs), std::move(rule_rhs)),
                            point_pos_(point_pos),
                            start_pos_(start_pos) {}
 
-Situation::EarleySituation(const GrammarRule &rule,
+EarleySituation::EarleySituation(const GrammarRule &rule,
                            uint32_t point_pos, uint32_t start_pos) :
-    rule_(rule), point_pos_(point_pos),
-    start_pos_(start_pos) {}
+                           GrammarRule(rule),
+                           point_pos_(point_pos),
+                           start_pos_(start_pos) {}
 
-char Situation::GetSymbolAfterPoint() const {
-  return rule_.rule_rhs_[point_pos_];
+char EarleySituation::GetSymbolAfterPoint() const {
+  return rule_rhs_[point_pos_];
 }
 
-bool Situation::IsComplete() const {
-  return point_pos_ == rule_.rule_rhs_.size();
+bool EarleySituation::IsComplete() const {
+  return point_pos_ == rule_rhs_.size();
 }
 
-Situation Situation::MovePointForward() const {
-  return {rule_, point_pos_ + 1, start_pos_};
+EarleySituation EarleySituation::MovePointForward() const {
+  return {rule_lhs_, rule_rhs_, point_pos_ + 1, start_pos_};
 }
 
-//EarleyParser::EarleyParser(Grammar grammar) : grammar_(std::move(grammar)) {}
+bool EarleySituation::operator==(const EarleySituation& other) const {
+  return rule_lhs_ == other.rule_lhs_ && rule_rhs_ == other.rule_rhs_ &&
+      point_pos_ == other.point_pos_ && start_pos_ == other.start_pos_;
+}
 
+
+void EarleyParser::ResizeEarleySets(size_t size) {
+  early_sets_.resize(size);
+}
 
 bool EarleyParser::Parse(const Grammar &grammar, std::string_view word) {
   early_sets_.clear();
@@ -65,19 +72,24 @@ bool EarleyParser::Parse(const Grammar &grammar, std::string_view word) {
 
 
 void EarleyParser::Predict(const Grammar &grammar, size_t ind) {
-  for (const Situation& situation : early_sets_[ind]) {
-    // TODO: remake from strings -> chars
+  std::list<EarleySituation> buffer;
+  for (const EarleySituation& situation : early_sets_[ind]) {
+
     std::string symbol_after_point (1, situation.GetSymbolAfterPoint());
     for (const GrammarRule& possible_cont : grammar.rules_list_) {
       if (possible_cont.rule_lhs_ == symbol_after_point) {
-        early_sets_[ind].emplace(possible_cont, 0, ind);
+        buffer.emplace_back(possible_cont, 0, ind);
       }
     }
+  }
+
+  for (const EarleySituation& new_situation : buffer) {
+    early_sets_[ind].insert(new_situation);
   }
 }
 
 void EarleyParser::Scan(int32_t ind, char symbol) {
-  for (const Situation& situation : early_sets_[ind]) {
+  for (const EarleySituation& situation : early_sets_[ind]) {
     if (situation.GetSymbolAfterPoint() == symbol) {
       early_sets_[ind + 1].insert(situation.MovePointForward());
     }
@@ -85,16 +97,19 @@ void EarleyParser::Scan(int32_t ind, char symbol) {
 }
 
 void EarleyParser::Complete(size_t ind) {
-  for (const Situation& situation : early_sets_[ind]) {
+  std::list<EarleySituation> buffer;
+
+  for (const EarleySituation& situation : early_sets_[ind]) {
     if (situation.IsComplete()) {
-      for (const Situation& situation_to_complete : early_sets_[situation.start_pos_]) {
+      for (const EarleySituation& situation_to_complete : early_sets_[situation.start_pos_]) {
         std::string symbol_after_point (1, situation_to_complete.GetSymbolAfterPoint());
-        if (symbol_after_point == situation.rule_.rule_lhs_) {
-          early_sets_[ind].insert(situation_to_complete.MovePointForward());
+        if (symbol_after_point == situation.rule_lhs_) {
+          buffer.push_back(situation_to_complete.MovePointForward());
         }
       }
     }
-
+  }
+  for (const EarleySituation& new_situation : buffer) {
+    early_sets_[ind].insert(new_situation);
   }
 }
-

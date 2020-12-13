@@ -1,13 +1,10 @@
 #include "Grammar.h"
 
-
+class EarleySituation;
 
 class EarleyParser {
  public:
-  class EarleySituation;
   struct EarleySituationHash;
-
-  EarleyParser() = default;
 
   bool Parse(const Grammar& grammar, std::string_view word);
 
@@ -16,14 +13,17 @@ class EarleyParser {
   void Scan(int32_t ind, char symbol);
   void Complete(size_t ind);
 
+  std::unordered_set<EarleySituation, EarleySituationHash>&
+      operator[](size_t ind) { return early_sets_[ind]; }
+  void ResizeEarleySets(size_t size);
+
  private:
   std::vector<std::unordered_set<EarleySituation, EarleySituationHash>> early_sets_;
 
 };
 
-class EarleyParser::EarleySituation {
+class EarleySituation : public GrammarRule {
  public:
-  GrammarRule rule_;
   uint32_t point_pos_;
   uint32_t start_pos_;
 
@@ -33,25 +33,19 @@ class EarleyParser::EarleySituation {
 
   EarleySituation(const GrammarRule& other, uint32_t point_pos, uint32_t start_pos);
 
-  char GetSymbolAfterPoint() const;
-  bool IsComplete() const;
+  [[nodiscard]] char GetSymbolAfterPoint() const;
+  [[nodiscard]] bool IsComplete() const;
 
-  EarleySituation MovePointForward() const;
+  [[nodiscard]] EarleySituation MovePointForward() const;
 
-  bool operator==(const EarleySituation& other) const {
-    return rule_.rule_lhs_ == other.rule_.rule_lhs_ &&
-           rule_.rule_rhs_ == other.rule_.rule_rhs_ &&
-           point_pos_ == other.point_pos_ &&
-           start_pos_ == other.start_pos_;
-  }
+  bool operator==(const EarleySituation& other) const;
 
 };
 
 struct EarleyParser::EarleySituationHash {
   size_t operator()(const EarleySituation& obj) const {
-    return std::hash<std::string>{}(obj.rule_.rule_rhs_ + obj.rule_.rule_lhs_ + \
+    return std::hash<std::string>{}(obj.rule_rhs_ + obj.rule_lhs_ + \
                                     std::to_string(obj.point_pos_) + \
                                     std::to_string(obj.start_pos_));
   }
 };
-

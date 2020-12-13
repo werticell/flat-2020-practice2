@@ -2,13 +2,15 @@
 
 #include "include/EarleyParser.h"
 
+
 int main() {
-  std::cout << "Enter your grammar, in such order\n"
+  std::cout << "Enter your grammar, in such order(if your grammar contains "
+               "epsilon rules please type it as `EPS`)\n"
                "1) A word that you want to check\n"
-               "1) Number of Nonterminals and the list of Nonterminals on the next line\n"
-               "2) Number of Alphabet symbols and symbols themselves\n"
-               "3) Number of rules and Rules for grammar\n"
-               "4) Starting symbol\n\n";
+               "2) Number of Nonterminals and the list of Nonterminals on the next line\n"
+               "3) Number of Alphabet symbols and symbols themselves\n"
+               "4) Number of rules and Rules for grammar\n"
+               "5) Starting symbol\n\n";
 
   std::string word;
   std::cin >> word;
