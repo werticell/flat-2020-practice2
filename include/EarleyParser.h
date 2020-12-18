@@ -1,24 +1,43 @@
 #include "Grammar.h"
 
+class EarleyParser;
 class EarleySituation;
+struct EarleySituationHash;
 
-class EarleyParser {
+namespace EarleyFunctions {
+
+  template<typename T, typename HashT>
+  void Predict(std::vector<std::unordered_set<T, HashT>>& earley_sets,
+               const Grammar& grammar, size_t ind);
+
+  template<typename T, typename HashT>
+  void Scan(std::vector<std::unordered_set<T, HashT>>& earley_sets,
+            int32_t ind, const std::string& symbol);
+
+  template<typename T, typename HashT>
+  void Complete(std::vector<std::unordered_set<T, HashT>>& earley_sets,
+                size_t ind);
+}
+
+class AbstractParser {
+ protected:
+  Grammar grammar_;
  public:
-  struct EarleySituationHash;
+  explicit AbstractParser(Grammar grammar) : grammar_(std::move(grammar)) {}
 
-  bool Parse(const Grammar& grammar, std::string_view word);
+  virtual bool Parse(const std::string& word) = 0;
 
+};
 
-  void Predict(const Grammar& grammar, size_t ind);
-  void Scan(int32_t ind, char symbol);
-  void Complete(size_t ind);
+class EarleyParser : public AbstractParser {
 
-  std::unordered_set<EarleySituation, EarleySituationHash>&
-      operator[](size_t ind) { return early_sets_[ind]; }
-  void ResizeEarleySets(size_t size);
+ public:
+  EarleyParser(const Grammar& grammar) : AbstractParser(grammar) {}
+
+  bool Parse(const std::string& word) override;
 
  private:
-  std::vector<std::unordered_set<EarleySituation, EarleySituationHash>> early_sets_;
+  std::vector<std::unordered_set<EarleySituation, EarleySituationHash>> earley_sets_;
 
 };
 
@@ -28,12 +47,15 @@ class EarleySituation : public GrammarRule {
   uint32_t start_pos_;
 
 
-  EarleySituation(std::string rule_lhs, std::string rule_rhs,
+  EarleySituation(const std::string& rule_lhs, const std::string& rule_rhs,
+                  uint32_t point_pos, uint32_t start_pos);
+
+  EarleySituation(const std::string& rule_lhs, const std::vector<std::string>& rule_rhs,
                   uint32_t point_pos, uint32_t start_pos);
 
   EarleySituation(const GrammarRule& other, uint32_t point_pos, uint32_t start_pos);
 
-  [[nodiscard]] char GetSymbolAfterPoint() const;
+  [[nodiscard]] std::string GetSymbolAfterPoint() const;
   [[nodiscard]] bool IsComplete() const;
 
   [[nodiscard]] EarleySituation MovePointForward() const;
@@ -42,10 +64,16 @@ class EarleySituation : public GrammarRule {
 
 };
 
-struct EarleyParser::EarleySituationHash {
+struct EarleySituationHash {
+
   size_t operator()(const EarleySituation& obj) const {
-    return std::hash<std::string>{}(obj.rule_rhs_ + obj.rule_lhs_ + \
-                                    std::to_string(obj.point_pos_) + \
-                                    std::to_string(obj.start_pos_));
+    std::hash<std::string> str_hash {};
+    std::hash<int32_t> int_hash {};
+    size_t result = str_hash(obj.rule_rhs_.front());
+    for (size_t i = 1; i < obj.rule_rhs_.size(); ++i) {
+      result ^= str_hash(obj.rule_rhs_[i]);
+    }
+    return result ^ str_hash( obj.rule_lhs_) ^ int_hash(obj.point_pos_) ^ \
+           int_hash(obj.start_pos_);
   }
 };

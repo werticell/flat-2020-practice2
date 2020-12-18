@@ -46,11 +46,11 @@ int main() {
 
 
   Grammar grammar(nonterminals, alphabet, rules_list, starting_symbol);
-  EarleyParser earley_parser;
+  EarleyParser earley_parser(grammar);
 
 
   std::cout <<
-           (earley_parser.Parse(grammar, word) ? "Word belongs to grammar language" :
+           (earley_parser.Parse(word) ? "Word belongs to grammar language" :
                                                  "Word doesn't belong to grammar language");
   return 0;
 }

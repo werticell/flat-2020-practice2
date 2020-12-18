@@ -10,8 +10,10 @@ const std::string rule_delimiter = {"->"};
 class GrammarRule {
 public:
   std::string rule_lhs_;
-  std::string rule_rhs_;
+  std::vector<std::string> rule_rhs_;
 
   explicit GrammarRule(const std::string& rule);
-  GrammarRule(std::string rule_lhs, std::string rule_rhs);
+  GrammarRule(const std::string& rule_lhs, const std::string& rule_rhs);
+  GrammarRule(const std::string& rule_lhs,
+              const std::vector<std::string>& rule_rhs);
 };

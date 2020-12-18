@@ -14,8 +14,8 @@ TEST(Test_parser, FirstGrammar) {
   std::string starting_symbol = "S";
 
   Grammar grammar(nonterminals, alphabet, rules_list, starting_symbol);
-  EarleyParser earley_parser;
-  EXPECT_EQ(true, earley_parser.Parse(grammar, word));
+  EarleyParser earley_parser(grammar);
+  EXPECT_EQ(true, earley_parser.Parse(word));
 }
 
 TEST(Test_parser, First_doesnt_belongs) {
@@ -30,8 +30,8 @@ TEST(Test_parser, First_doesnt_belongs) {
   std::string starting_symbol = "S";
 
   Grammar grammar(nonterminals, alphabet, rules_list, starting_symbol);
-  EarleyParser earley_parser;
-  EXPECT_EQ(false, earley_parser.Parse(grammar, word));
+  EarleyParser earley_parser(grammar);
+  EXPECT_EQ(false, earley_parser.Parse(word));
 }
 
 TEST(Test_parser, Second_belongs) {
@@ -44,8 +44,8 @@ TEST(Test_parser, Second_belongs) {
   std::string starting_symbol = "S";
 
   Grammar grammar(nonterminals, alphabet, rules_list, starting_symbol);
-  EarleyParser earley_parser;
-  EXPECT_EQ(true, earley_parser.Parse(grammar, word));
+  EarleyParser earley_parser(grammar);
+  EXPECT_EQ(true, earley_parser.Parse(word));
 }
 
 TEST(Test_parser, Second_doesnt_belongs) {
@@ -58,8 +58,8 @@ TEST(Test_parser, Second_doesnt_belongs) {
   std::string starting_symbol = "S";
 
   Grammar grammar(nonterminals, alphabet, rules_list, starting_symbol);
-  EarleyParser earley_parser;
-  EXPECT_EQ(false, earley_parser.Parse(grammar, word));
+  EarleyParser earley_parser(grammar);
+  EXPECT_EQ(false, earley_parser.Parse(word));
 }
 
 TEST(Exceptions, empty_state) {
@@ -71,23 +71,9 @@ TEST(Exceptions, long_start) {
 }
 
 
-
-// point_pos, start_pos
-TEST(Scan, scan_test) {
-  std::list<std::string> nonterminals {"S", "P", "T"};
-  std::list<std::string> alphabet {"x", "y", "z", "*", "(", ")", "+"};
-  std::list<GrammarRule> rules_list = {GrammarRule("S->S+P"), GrammarRule("S->P"),
-                                       GrammarRule("P->P*T"), GrammarRule("P->T"),
-                                       GrammarRule("T->(S)"), GrammarRule("T->x"),
-                                       GrammarRule("T->y"), GrammarRule("T->z"),
-                                       GrammarRule("T->(P)y"), GrammarRule("T->(T)y")};
-  std::string starting_symbol = "S";
-
-  Grammar grammar(nonterminals, alphabet, rules_list, starting_symbol);
-
-  EarleyParser earley_parser;
-  earley_parser.ResizeEarleySets(2);
-  earley_parser[0] = {EarleySituation(GrammarRule("S->S+P"), 0, 0),
+TEST(Scan, FIRST) {
+  std::vector<std::unordered_set<EarleySituation, EarleySituationHash>> earley_sets(2);
+  earley_sets[0] = {EarleySituation(GrammarRule("S->S+P"), 0, 0),
                       EarleySituation(GrammarRule("S->P"), 1, 0),
                       EarleySituation(GrammarRule("S->y"), 0, 0),
                       EarleySituation(GrammarRule("S->y"), 1, 0),
@@ -95,17 +81,17 @@ TEST(Scan, scan_test) {
                       EarleySituation(GrammarRule("S->(P)y"), 3, 0),
                       EarleySituation(GrammarRule("S->(T)y"), 3, 0)
                   };
-  earley_parser.Scan(0, 'y');
-  auto& first = earley_parser[1];
+
+  EarleyFunctions::Scan(earley_sets, 0, std::string(1, 'y'));
+  auto& first = earley_sets[1];
+  ASSERT_EQ(earley_sets[1].size(), 3);
   ASSERT_TRUE(first.find(EarleySituation(GrammarRule("S->(P)y"), 4, 0))
             != first.end());
   ASSERT_TRUE(first.find(EarleySituation(GrammarRule("S->y"), 1, 0)) != first.end());
   ASSERT_TRUE(first.find(EarleySituation(GrammarRule("S->(T)y"), 4, 0)) != first.end());
-  ASSERT_EQ(earley_parser[1].size(), 3);
-
 }
 
-TEST(Predict, predict_test) {
+TEST(Predict, FIRST) {
   std::list<std::string> nonterminals {"S", "P", "T"};
   std::list<std::string> alphabet {"x", "y", "z", "*", "(", ")", "+"};
   std::list<GrammarRule> rules_list = {GrammarRule("S->S+P"), GrammarRule("S->P"),
@@ -118,9 +104,8 @@ TEST(Predict, predict_test) {
 
   Grammar grammar(nonterminals, alphabet, rules_list, starting_symbol);
 
-  EarleyParser earley_parser;
-  earley_parser.ResizeEarleySets(3);
-  earley_parser[2] = {EarleySituation(GrammarRule("S->S+P"), 0, 2),
+  std::vector<std::unordered_set<EarleySituation, EarleySituationHash>> earley_sets(3);
+  earley_sets[2] =   {EarleySituation(GrammarRule("S->S+P"), 0, 2),
                       EarleySituation(GrammarRule("S->P"), 1, 2),
                       EarleySituation(GrammarRule("S->y"), 0, 2),
                       EarleySituation(GrammarRule("S->y"), 1, 2),
@@ -138,38 +123,25 @@ TEST(Predict, predict_test) {
                                        EarleySituation(GrammarRule("T->(P)y"), 0, 2),
                                        EarleySituation(GrammarRule("T->(T)y"), 0, 2),
                                        EarleySituation(GrammarRule("S->P"), 0, 2)
-                                       };
+  };
 
-  for (const auto& situation : earley_parser[2]) {
+  for (const auto& situation : earley_sets[2]) {
     result.push_back(situation);
   }
 
-
-  earley_parser.Predict(grammar, 2);
-  auto& first = earley_parser[2];
-  ASSERT_EQ(earley_parser[2].size(), result.size());
+  EarleyFunctions::Predict(earley_sets, grammar, 2);
+  auto& first = earley_sets[2];
+  ASSERT_EQ(earley_sets[2].size(), result.size());
   for (const auto& situation : result) {
     ASSERT_TRUE(first.find(situation) != first.end());
   }
 }
 
 
-TEST(Complete, complete_test) {
-  std::list<std::string> nonterminals {"S", "P", "T"};
-  std::list<std::string> alphabet {"x", "y", "z", "*", "(", ")", "+"};
-  std::list<GrammarRule> rules_list = {GrammarRule("S->S+P"), GrammarRule("S->P"),
-                                       GrammarRule("P->P*T"), GrammarRule("P->T"),
-                                       GrammarRule("T->(S)"), GrammarRule("T->x"),
-                                       GrammarRule("T->y"), GrammarRule("T->z"),
-                                       GrammarRule("T->(P)y"), GrammarRule("T->(T)y")
-  };
-  std::string starting_symbol = "S";
+TEST(Complete, FIRST) {
 
-  Grammar grammar(nonterminals, alphabet, rules_list, starting_symbol);
-
-  EarleyParser earley_parser;
-  earley_parser.ResizeEarleySets(5);
-  earley_parser[4] = {EarleySituation(GrammarRule("S->S+P"), 1, 2),
+  std::vector<std::unordered_set<EarleySituation, EarleySituationHash>> earley_sets(5);
+  earley_sets[4] = {EarleySituation(GrammarRule("S->S+P"), 1, 2),
 
                       EarleySituation(GrammarRule("T->y"), 1, 3),
                       EarleySituation(GrammarRule("T->(P)y"), 4, 3),
@@ -181,14 +153,14 @@ TEST(Complete, complete_test) {
                       EarleySituation(GrammarRule("P->P*T"), 3, 2),
   };
 
-  earley_parser[3] = {EarleySituation(GrammarRule("S->S+P"), 0, 1),
+  earley_sets[3] = {EarleySituation(GrammarRule("S->S+P"), 0, 1),
                       EarleySituation(GrammarRule("T->(S)"), 1, 1),
                       EarleySituation(GrammarRule("S->(T)y"), 1, 1),
                       EarleySituation(GrammarRule("P->P*T"), 2, 1),
 
   };
 
-  earley_parser[2] = {EarleySituation(GrammarRule("S->S+P"), 0, 0),
+  earley_sets[2] = {EarleySituation(GrammarRule("S->S+P"), 0, 0),
                       EarleySituation(GrammarRule("T->(S)"), 1, 0),
 
                       EarleySituation(GrammarRule("S->(T)y"), 1, 0),
@@ -212,14 +184,14 @@ TEST(Complete, complete_test) {
                                        EarleySituation(GrammarRule("S->(P)y"), 2, 0),
                                        };
 
-  for (const auto& situation : earley_parser[4]) {
+  for (const auto& situation : earley_sets[4]) {
     result.push_back(situation);
   }
 
 
-  earley_parser.Complete(4);
-  auto& first = earley_parser[4];
-  ASSERT_EQ(earley_parser[4].size(), result.size());
+  EarleyFunctions::Complete(earley_sets, 4);
+  auto& first = earley_sets[4];
+  ASSERT_EQ(earley_sets[4].size(), result.size());
   for (const auto& situation : result) {
     ASSERT_TRUE(first.find(situation) != first.end());
   }
