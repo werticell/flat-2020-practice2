@@ -69,9 +69,9 @@ struct EarleySituationHash {
   size_t operator()(const EarleySituation& obj) const {
     std::hash<std::string> str_hash {};
     std::hash<int32_t> int_hash {};
-    size_t result = str_hash(obj.rule_rhs_.front());
-    for (size_t i = 1; i < obj.rule_rhs_.size(); ++i) {
-      result ^= str_hash(obj.rule_rhs_[i]);
+    size_t result = str_hash(obj.rhs_tokens_.front());
+    for (size_t i = 1; i < obj.rhs_tokens_.size(); ++i) {
+      result ^= str_hash(obj.rhs_tokens_[i]);
     }
     return result ^ str_hash( obj.rule_lhs_) ^ int_hash(obj.point_pos_) ^ \
            int_hash(obj.start_pos_);

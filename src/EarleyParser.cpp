@@ -22,23 +22,23 @@ EarleySituation::EarleySituation(const std::string& rule_lhs,
 
 
 std::string EarleySituation::GetSymbolAfterPoint() const {
-  return rule_rhs_[point_pos_];
+  return rhs_tokens_[point_pos_];
 }
 
 bool EarleySituation::IsComplete() const {
-  if (rule_rhs_.front().empty()) {
+  if (rhs_tokens_.front().empty()) {
     return true;
   } else {
-    return point_pos_ == rule_rhs_.size();
+    return point_pos_ == rhs_tokens_.size();
   }
 }
 
 EarleySituation EarleySituation::MovePointForward() const {
-  return {rule_lhs_, rule_rhs_, point_pos_ + 1, start_pos_};
+  return {rule_lhs_, rhs_tokens_, point_pos_ + 1, start_pos_};
 }
 
 bool EarleySituation::operator==(const EarleySituation& other) const {
-  return rule_lhs_ == other.rule_lhs_ && rule_rhs_ == other.rule_rhs_ &&
+  return rule_lhs_ == other.rule_lhs_ && rhs_tokens_ == other.rhs_tokens_ &&
       point_pos_ == other.point_pos_ && start_pos_ == other.start_pos_;
 }
 

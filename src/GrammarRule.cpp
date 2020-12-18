@@ -17,10 +17,10 @@ GrammarRule::GrammarRule(const std::string& rule) {
     }
 
     if (str_rule_rhs == "EPS") {
-      rule_rhs_.emplace_back(std::string());
+      rhs_tokens_.emplace_back(std::string());
     } else {
       for (char symbol : str_rule_rhs) {
-        rule_rhs_.emplace_back(1, symbol);
+        rhs_tokens_.emplace_back(1, symbol);
       }
     }
   }
@@ -30,16 +30,16 @@ GrammarRule::GrammarRule(const std::string& rule_lhs, const std::string& rule_rh
                          rule_lhs_(rule_lhs) {
 
   if (rule_rhs == "EPS") {
-    rule_rhs_.emplace_back(std::string());
+    rhs_tokens_.emplace_back(std::string());
   } else {
     for (char symbol : rule_rhs) {
-      rule_rhs_.emplace_back(1, symbol);
+      rhs_tokens_.emplace_back(1, symbol);
     }
   }
 
 }
 
 GrammarRule::GrammarRule(const std::string& rule_lhs,
-                         const std::vector<std::string>& rule_rhs) :
-                         rule_lhs_(rule_lhs),
-                         rule_rhs_(rule_rhs) {}
+                         const std::vector<std::string>& rhs_tokens) :
+    rule_lhs_(rule_lhs),
+    rhs_tokens_(rhs_tokens) {}
